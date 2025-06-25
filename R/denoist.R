@@ -5,6 +5,7 @@ utils::globalVariables(c("feature_name", "hexbin_id", "count"))
 #' @importFrom stats dpois runif
 #' @importFrom SpatialExperiment spatialCoords
 #' @importFrom SummarizedExperiment assay
+#' @importFrom parallel makeCluster clusterExport parLapply stopCluster
 #' @export
 #' @title DenoIST
 #' @description
@@ -20,6 +21,7 @@ utils::globalVariables(c("feature_name", "hexbin_id", "count"))
 #' @param feature_label Column name for the gene of each transcript in the transcripts dataframe. Default is 'gene'.
 #' @param distance The maximum distance to consider for local background estimation.
 #' @param nbins The number of bins to use for hexagonal binning.
+#' @param posterior_cutoff The cutoff for posterior probability to determine contamination.
 #' @param cl The number of cores to use for parallel processing.
 #' @param out_dir The output directory to save the results.
 #' @return A list containing the following elements:
@@ -49,13 +51,17 @@ denoist <- function(mat, tx, coords = NULL,
                     tx_x = "x",
                     tx_y = "y",
                     feature_label = "gene",
-                    distance = 50, nbins = 200, cl = 1, out_dir = NULL){
+                    distance = 50,
+                    nbins = 200,
+                    posterior_cutoff = 0.6,
+                    cl = 1,
+                    out_dir = NULL){
   # TODO:check input type
   if(inherits(mat, "SpatialExperiment")){
     coords <- spatialCoords(mat)
     mat <- assay(mat)
     #remove NegControl and BLANKS
-    mat <- mat[!grepl("NegControl|BLANK", rownames(mat)),]
+    mat <- mat[!grepl("NegControl|BLANK|Unassigned", rownames(mat)),]
   }else if(is.null(coords)){
     stop("coords must be provided")
   }
@@ -75,14 +81,44 @@ denoist <- function(mat, tx, coords = NULL,
                                                    distance = distance,
                                                    nbins = nbins,
                                                    cl = cl)
+  # Clear tx just in case to save mem
+  rm(tx)
+  gc()
 
-  # Apply the Poisson mixture model
-  message("Applying the Poisson mixture model...")
-  results <- pblapply(1:ncol(mat),
-                      apply_poisson_mixture_single,
-                      mat,
-                      off_mat,
-                      cl = cl)
+  # Function to parallelize over
+  apply_poisson_mixture_single <- function(mat, off_mat, posterior_cutoff){
+    function(idx) { # friendship ended with OOP, FP is now my best friend
+      c_vec <- mat[,idx]
+      s_vec <- off_mat[,idx]
+      result <- tryCatch({
+        out <- solve_poisson_mixture(c_vec, s_vec, posterior_cutoff = posterior_cutoff)
+        return(out)
+      }, error = function(e) {
+        out <- list(memberships = rep(1, length(c_vec)),
+                    posterior = rep(1, length(c_vec)),
+                    lambda1 = NA, lambda2 = NA, pi = NA)
+        return(out)
+      })
+      return(result)
+    }
+  }
+
+  if(cl > 1){
+    message("Setting up parallel processing...")
+    clust <- makeCluster(cl-1, type = "FORK")
+    message("Exporting variables to workers...")
+    clusterExport(clust, c("mat", "off_mat", "solve_poisson_mixture", "posterior_cutoff"), envir = environment())
+
+    # Apply the Poisson mixture model
+    message("Applying the Poisson mixture model...")
+    results <- parLapply(cl = clust, 1:ncol(mat), apply_poisson_mixture_single(mat, off_mat, posterior_cutoff))
+    stopCluster(clust)
+  }else{
+    # use pblapply normally without multiple processing
+    message("Applying the Poisson mixture model without parallel processing...")
+    results <- pblapply(1:ncol(mat), apply_poisson_mixture_single(mat, off_mat, posterior_cutoff), cl = cl)
+  }
+
 
   # return neighbour_offset, adjusted_counts, posterior, params
   message("Tidying up results...")

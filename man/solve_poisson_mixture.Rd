@@ -10,6 +10,7 @@ solve_poisson_mixture(
   max_iter = 5000,
   tol = 1e-06,
   pi_inits = runif(10, min = 0, max = 0.5),
+  posterior_cutoff = 0.6,
   verbose = FALSE
 )
 }
@@ -23,6 +24,8 @@ solve_poisson_mixture(
 \item{tol}{Tolerance for convergence.}
 
 \item{pi_inits}{Initial values for the mixing proportion.}
+
+\item{posterior_cutoff}{Cutoff for posterior probabilities to assign memberships.}
 
 \item{verbose}{Logical, if TRUE, print progress messages.}
 }

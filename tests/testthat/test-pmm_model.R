@@ -21,14 +21,3 @@ test_that("solve_poisson_mixture handles zero s values", {
   expect_equal(length(result$memberships), length(x))
   expect_equal(result$memberships[which(s == 0)], rep(1, sum(s == 0)))
 })
-
-# Test apply_poisson_mixture_single
-test_that("apply_poisson_mixture_single handles errors gracefully", {
-  c_matrix <- matrix(c(3, 5, 2, 8, 6), ncol = 1)
-  s_matrix <- matrix(c(1, 0, 1, 0, 1), ncol = 1)
-  result <- apply_poisson_mixture_single(1, c_matrix, s_matrix)
-
-  expect_type(result, "list")
-  expect_equal(length(result$memberships), nrow(c_matrix))
-  expect_equal(length(result$posterior), nrow(c_matrix))
-})

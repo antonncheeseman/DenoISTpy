@@ -16,6 +16,11 @@ This is still very much a work in progress and we are still working on the docum
 
 ## News:
 
+- **2025-06-25**: Major update
+  - Fixed memory usage for parallel processing. Feature is available only on linux/UNIX machines due to dependency on `parallel`.
+  - Posterior cutoff is now a tunable parameter.
+  - QOL changes including checking input types and error handling.
+
 - **2025-05-20**: Initial release of DenoIST. The package is now available on and GitHub.
 
 ## Installation:
@@ -47,8 +52,9 @@ Some additional parameters you can adjust based on your dataset:
 2.  `nbins` : Number of bins to use for calculating ambient background. Default is 200.
 3.  `tx_x` and `tx_y`: The column names in the transcript data frame for the x and y coordinates of each transcript. Default is `x` and `y`.
 4.  `feature_label`: The column name in the transcript data frame for the gene of each transcript. Default is `gene`. (In Xenium you should change it to `feature_label`)
-5.  `cl` : Number of cores to use for parallel processing. Default is 1.
-6.  `out_dir` : An output directory to save the results in. Not mandatory. Default is NULL.
+5.  `posterior_cutoff`: The cutoff for the posterior probability of a gene being real or contamination. Default is 0.6, meaning if the posterior probability is above 0.6, the gene is considered real.
+6.  `cl` : Number of cores to use for parallel processing. Default is 1.
+7.  `out_dir` : An output directory to save the results in. Not mandatory. Default is NULL.
 
 You can run `?denoist` for more details on the parameters.
 

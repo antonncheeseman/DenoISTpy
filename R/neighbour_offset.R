@@ -28,6 +28,7 @@ local_offset_distance_with_background <- function(mat,
                                                   distance = 50,
                                                   nbins = 200,
                                                   cl = 1) {
+
   #print(mat[1:5, 1:5])
   #print(coords[1:5, 1:2])
   message('Calculating global background...')
@@ -60,8 +61,13 @@ local_offset_distance_with_background <- function(mat,
 
   #print(rownames(mat)[1:5])
   gene_bin_matrix <- gene_bin_matrix[rownames(mat),]
+  gene_bin_matrix[is.na(gene_bin_matrix)] <- 0
+  #print(gene_bin_matrix[1:5, 1:10])
   #print(gene_bin_matrix[1:5, 1:5])
-  bin_total <-colSums(gene_bin_matrix)
+  bin_total <- colSums(gene_bin_matrix)
+  #print(bin_total[1:5])
+  #print(any(is.na(bin_total)))
+
   # Extract empty bins inferred from GMM
   # Fit a Gaussian Mixture Model to colSums(gene_bin_matrix)
   message("Running GMM...")
@@ -69,31 +75,42 @@ local_offset_distance_with_background <- function(mat,
   #gmm <- Mclust(bin_total, G = 2)
   mo1 <- FLXMRglm(family = "gaussian")
   mo2 <- FLXMRglm(family = "gaussian")
-  flexfit <- flexmix(x ~ 1, data = data.frame(x=bin_total), k = 2, model = list(mo1, mo2))
-  # Get the parameters of the GMM
-  c1 <- parameters(flexfit, component=1)[[1]]
-  c2 <- parameters(flexfit, component=2)[[1]]
-  # Print the summary of the GMM
-  # print(summary(gmm))
+  bg_offset <- tryCatch(
+        { flexfit <- flexmix(x ~ 1, data = data.frame(x=bin_total), k = 2, model = list(mo1, mo2))
+          # Get the parameters of the GMM
+          c1 <- parameters(flexfit, component=1)[[1]]
+          c2 <- parameters(flexfit, component=2)[[1]]
+          # Print the summary of the GMM
+          # print(summary(gmm))
 
-  # Identify the component with the smaller mean
-  #gmm_means <- gmm$parameters$mean
-  gmm_means <- c(c1[1], c2[1])
-  smaller_mean_component <- which.min(gmm_means)
+          # Identify the component with the smaller mean
+          #gmm_means <- gmm$parameters$mean
+          gmm_means <- c(c1[1], c2[1])
+          smaller_mean_component <- which.min(gmm_means)
 
-  empty_bin_matrix <- gene_bin_matrix[,clusters(flexfit) == smaller_mean_component]
-  empty_bin_matrix <- empty_bin_matrix[,colSums(empty_bin_matrix) > 0]
+          empty_bin_matrix <- gene_bin_matrix[,clusters(flexfit) == smaller_mean_component]
+          empty_bin_matrix <- empty_bin_matrix[,colSums(empty_bin_matrix) > 0]
 
-  per_unit_sum <- rowSums(empty_bin_matrix)/(ncol(empty_bin_matrix) * hex_area)
-  scaled_sum <- per_unit_sum * distance^2 * pi
+          per_unit_sum <- rowSums(empty_bin_matrix)/(ncol(empty_bin_matrix) * hex_area)
+          scaled_sum <- per_unit_sum * distance^2 * pi
 
-  bg_offset <- ifelse(scaled_sum == 0, 1, ceiling(scaled_sum))
+          bg_offset <- ifelse(scaled_sum == 0, 1, ceiling(scaled_sum))
+          bg_offset
+        }, error = function(e){
+          message("flexmix failed during GMM fit: ", e$message)
+          message("Setting global background contamination to 1...")
+          bg_offset <- rep(1, nrow(gene_bin_matrix))
+          bg_offset
+        }
+  )
 
-
+  #print(bg_offset[1:5])
+  bg_offset <- as.numeric(bg_offset)
   # for each obs, get neighbours within distance
   # and then get the total count
   get_neighbors_within_distance <- function(coords, distance) {
     coords_mat <- as.matrix(coords)
+    #mode(coords_mat) <- "numeric"
     neighbors <- vector("list", nrow(coords))
     neighbors <- pblapply(seq_len(nrow(coords)), function(i) {
       dists <- sqrt(rowSums2((coords_mat - coords_mat[i, ])^2))
@@ -122,6 +139,7 @@ local_offset_distance_with_background <- function(mat,
   res <- pblapply(seq_len(ncol(mat)), get_local_offset, neighbors, mat, cl = cl)
   res_mat <- do.call(cbind, res)
   colnames(res_mat) <- colnames(mat)
+  #browser()
 
   # add bg_offset to every column of res_mat
   res_mat <- sweep(res_mat, 1, bg_offset, "+")

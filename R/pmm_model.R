@@ -4,6 +4,7 @@
 #' @param max_iter Maximum number of iterations for the EM algorithm.
 #' @param tol Tolerance for convergence.
 #' @param pi_inits Initial values for the mixing proportion.
+#' @param posterior_cutoff Cutoff for posterior probabilities to assign memberships.
 #' @param verbose Logical, if TRUE, print progress messages.
 #' @return{
 #' A list containing the following elements:
@@ -32,6 +33,7 @@ solve_poisson_mixture <- function(x, s,
                                   max_iter = 5000,
                                   tol = 1e-6,
                                   pi_inits = runif(10, min = 0, max = 0.5),
+                                  posterior_cutoff = 0.6,
                                   verbose = FALSE) {
 
   n <- length(x)
@@ -113,7 +115,7 @@ solve_poisson_mixture <- function(x, s,
   }
 
   # Assign memberships
-  memberships <- ifelse(best_result$gamma > 0.6, 1, 0)
+  memberships <- ifelse(best_result$gamma >= posterior_cutoff, 1, 0)
 
   # TODO: if memberships are all 0, set to 1
   if (all(memberships == 0)) {
@@ -133,18 +135,4 @@ solve_poisson_mixture <- function(x, s,
               lambda2 = best_result$lambda2,
               pi = best_result$pi,
               log_lik = best_result$log_lik))
-}
-
-# Function to apply solve_poisson_mixture to a single column
-apply_poisson_mixture_single <- function(index, c_matrix, s_matrix) {
-  test_c <- c_matrix[, index]
-  test_s <- s_matrix[, index]
-  result <- tryCatch({
-    solve_poisson_mixture(test_c, test_s)
-  }, error = function(e) {
-    list(memberships = rep(1, length(test_c)),
-         posterior = rep(1, length(test_c)),
-         lambda1 = NA, lambda2 = NA, pi = NA)
-  })
-  return(result)
 }

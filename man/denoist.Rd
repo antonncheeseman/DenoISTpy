@@ -13,6 +13,7 @@ denoist(
   feature_label = "gene",
   distance = 50,
   nbins = 200,
+  posterior_cutoff = 0.6,
   cl = 1,
   out_dir = NULL
 )
@@ -33,6 +34,8 @@ denoist(
 \item{distance}{The maximum distance to consider for local background estimation.}
 
 \item{nbins}{The number of bins to use for hexagonal binning.}
+
+\item{posterior_cutoff}{The cutoff for posterior probability to determine contamination.}
 
 \item{cl}{The number of cores to use for parallel processing.}
 
