@@ -38,7 +38,8 @@ suppressPackageStartupMessages({
 ```{r, eval=FALSE}
 dir = "/mnt/beegfs/mccarthy/backed_up/general/rlyu/Dataset/LFST_2022/GEO_2025/VUHD116A/relabel_output-XETG00048__0003817__VUHD116A__20230308__003730/outs/"
 spe <- readXeniumSXE(dir, returnType = "SPE")
-saveRDS(spe, "example_spe.rds")
+example_small <- spe[,sample(ncol(spe), 3000)]
+saveRDS(example_small, "example_spe.rds")
 ```
 
 For this vignette, we will use a pre-saved `SpatialExperiment` object generated from the code above.
