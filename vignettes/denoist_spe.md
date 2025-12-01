@@ -100,7 +100,3 @@ Lastly, you can specify an output directory with `out_dir` to save the results a
 
 
 
-
-
-
-

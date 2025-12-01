@@ -135,3 +135,8 @@ adj <- plot_feature_scatter(coords = spatialCoords(spe), log(result$adjusted_cou
 (orig + adj) + plot_layout(guides = "collect")
 ```
 
+# Session information {.unnumbered}
+
+```{r sessionInfo}
+sessionInfo()
+```

@@ -55,8 +55,8 @@ solve_poisson_mixture <- function(x, s,
     pi <- pi_init
 
     if (verbose) {
-      cat("Initial parameters for pi =", pi_init, ":\n")
-      cat("lambda1:", lambda1, "lambda2:", lambda2, "pi:", pi, "\n")
+      message("Initial parameters for pi =", pi_init, ":\n")
+      message("lambda1:", lambda1, "lambda2:", lambda2, "pi:", pi, "\n")
     }
 
     log_likelihood <- function(x, s, lambda1, lambda2, pi) {
@@ -65,7 +65,7 @@ solve_poisson_mixture <- function(x, s,
 
     log_lik <- log_likelihood(x, s, lambda1, lambda2, pi)
 
-    for (iter in 1:max_iter) {
+    for (iter in seq_len(max_iter)) {
       # E-step: calculate responsibilities
       tau1 <- pi * dpois(x, s * lambda1)
       tau2 <- (1 - pi) * dpois(x, s * lambda2)
@@ -77,16 +77,16 @@ solve_poisson_mixture <- function(x, s,
       pi <- mean(gamma)
 
       if (verbose) {
-        cat("Iteration", iter, "parameters:\n")
-        cat("lambda1:", lambda1, "lambda2:", lambda2, "pi:", pi, "\n")
+        message("Iteration", iter, "parameters:\n")
+        message("lambda1:", lambda1, "lambda2:", lambda2, "pi:", pi, "\n")
       }
 
       # Check for convergence
       new_log_lik <- log_likelihood(x, s, lambda1, lambda2, pi)
       if (!is.finite(new_log_lik) || abs(new_log_lik - log_lik) < tol) {
         if (verbose) {
-          cat("Converged after", iter, "iterations\n")
-          cat("Final log-likelihood:", log_lik, "\n")
+          message("Converged after", iter, "iterations\n")
+          message("Final log-likelihood:", log_lik, "\n")
         }
         break
       }

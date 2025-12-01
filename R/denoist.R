@@ -111,12 +111,12 @@ denoist <- function(mat, tx, coords = NULL,
 
     # Apply the Poisson mixture model
     message("Applying the Poisson mixture model...")
-    results <- parLapply(cl = clust, 1:ncol(mat), apply_poisson_mixture_single(mat, off_mat, posterior_cutoff))
+    results <- parLapply(cl = clust, seq_len(ncol(mat)), apply_poisson_mixture_single(mat, off_mat, posterior_cutoff))
     stopCluster(clust)
   }else{
     # use pblapply normally without multiple processing
     message("Applying the Poisson mixture model without parallel processing...")
-    results <- pblapply(1:ncol(mat), apply_poisson_mixture_single(mat, off_mat, posterior_cutoff), cl = cl)
+    results <- pblapply(seq_len(ncol(mat)), apply_poisson_mixture_single(mat, off_mat, posterior_cutoff), cl = cl)
   }
 
 

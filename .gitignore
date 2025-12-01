@@ -1,4 +1,6 @@
 .Rproj.user
+.Rprofile
+.Rbuildignore
 .Rhistory
 .RData
 .Ruserdata
@@ -8,3 +10,6 @@
 .quarto
 inst/doc
 *.csv
+.github
+DenoIST.Rproj
+.git
