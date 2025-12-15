@@ -2,7 +2,7 @@
 title: "Denoising Imaged-based Spatial Transcriptomics data with DenoIST"
 output: rmarkdown::html_vignette
 author: "Aaron Kwok"
-date: "2025-05-16"
+date: "2025-12-15"
 vignette: >
   %\VignetteIndexEntry{denoist_spe}
   %\VignetteEngine{knitr::rmarkdown}
@@ -19,6 +19,9 @@ knitr::opts_chunk$set(
 # Introduction
 
 DenoIST (Denoising Image-based Spatial Transcriptomics) is a method for identifying and removing contamination artefacts in image-based single-cell transcriptomics (IST) data. This vignette shows how to use it with a `SpatialExperiment` object or a matrix with coordinates as a separate input.
+
+Why does IST data need denoising? As cell segmentation is imperfect, sometimes segmented cells present gene expression profiles that are contradictory and highly improbable. DenoIST can identify these cases and remove likely `contaminating' gene transcripts. If you are interested in more details, please refer to the [preprint](https://www.biorxiv.org/content/10.1101/2025.11.13.688387v1).
+
 
 # Load data
 
