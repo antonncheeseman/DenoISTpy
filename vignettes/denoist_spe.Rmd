@@ -48,14 +48,14 @@ saveRDS(example_small, "example_spe.rds")
 For this vignette, we will use a pre-saved `SpatialExperiment` object generated from the code above.
 
 ```{r load_spe}
-spe <- readRDS('example_spe.rds')
+spe <- readRDS(system.file("extdata", "example_spe.rds", package = "DenoIST"))
 spe
 ```
 
 Since the transcript file is too big to upload, for demonstration we will read in a very small subset to show the what the format is like:
 
 ```{r load_data}
-tx <- readRDS('tx_sub.rds')
+tx <- readRDS(system.file("extdata", "tx_sub.rds", package = "DenoIST"))
 tx
 ```
 
@@ -91,7 +91,7 @@ This is useful if you want to run DenoIST on a matrix that is not a `SpatialExpe
 The most useful output in `result` should be the `adjusted_counts`.
 
 ```{r read_results}
-result <- readRDS('result.rds')
+result <- readRDS(system.file("extdata", "result.rds", package = "DenoIST"))
 ```
 
 
