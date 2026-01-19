@@ -49,8 +49,13 @@ local_offset_distance_with_background <- function(mat,
   #print(mat[1:5, 1:5])
   #print(coords[1:5, 1:2])
   message('Calculating global background...')
-  # filter by qv20
-  tx <- tx[tx[['qv']] >= 20,]
+  # filter by qv20 if the column exists (ie Xenium)
+  if('qv' %in% colnames(tx)){
+    message('Filtering qv for high quality transcripts...')
+    tx <- tx[tx[['qv']] >= 20,]
+  }else{
+    message('QV column not found! Skipping filtering...')
+  }
   #print(nrow(tx))
   #print(head(tx))
   # Create hexagonal bins
