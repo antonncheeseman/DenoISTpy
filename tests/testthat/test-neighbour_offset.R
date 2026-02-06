@@ -7,7 +7,8 @@ test_that("Neighbour offsets can be calculated", {
   off <- local_offset_distance_with_background(mat = test_mat,
                                               coords = test_coords,
                                               tx = test_tx,
-                                              distance = 50, nbins = 200, cl = 1)
+                                              distance = 50, nbins = 200,
+                                              cl = 1, verbose = TRUE)
   expect_equal(nrow(off), nrow(test_mat))
   expect_equal(ncol(off), ncol(test_mat))
 })
@@ -20,7 +21,8 @@ test_that("Transcript data with no QV can be handled", {
   off <- local_offset_distance_with_background(mat = test_mat,
                                                coords = test_coords,
                                                tx = test_tx,
-                                               distance = 50, nbins = 200, cl = 1)
+                                               distance = 50, nbins = 200,
+                                               cl = 1, verbose = TRUE)
   expect_equal(nrow(off), nrow(test_mat))
   expect_equal(ncol(off), ncol(test_mat))
 })

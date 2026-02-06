@@ -1,8 +1,8 @@
 ---
 title: "Denoising Imaged-based Spatial Transcriptomics data with DenoIST"
-output: rmarkdown::html_vignette
+output: BiocStyle::html_document
 author: "Aaron Kwok"
-date: "2025-12-15"
+package: DenoIST
 vignette: >
   %\VignetteIndexEntry{denoist_spe}
   %\VignetteEngine{knitr::rmarkdown}
@@ -22,12 +22,21 @@ DenoIST (Denoising Image-based Spatial Transcriptomics) is a method for identify
 
 Why does IST data need denoising? As cell segmentation is imperfect, sometimes segmented cells present gene expression profiles that are contradictory and highly improbable. DenoIST can identify these cases and remove likely `contaminating' gene transcripts. If you are interested in more details, please refer to the [preprint](https://www.biorxiv.org/content/10.1101/2025.11.13.688387v1).
 
+# Installation
+
+You can install `DenoIST` via Bioconductor:
+
+```
+if(!requireNamespace("BiocManager", quietly=TRUE))
+    install.packages("BiocManager")
+BiocManager::install("DenoIST")
+```
 
 # Load data
 
-For demonstration, we will use a small Xenium sample from a lung fibrosis study (Vannan & Lyu et. al, 2025). It can be downloaded at [GSE250346](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE250346).
+For demonstration, we will use a small Xenium sample from a lung fibrosis study (Vannan & Lyu et. al, 2025). It can be downloaded at [GSE250346](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE250346). We downsampled this dataset to 300 cells for demonstration purpose.
 
-From the raw Xenium output, we can then construct a `SpatialExperiment` object with `SpatialExperimentIO`.
+For this vignette, we will use a pre-made `SpatialExperiment` object.
 
 ```{r setup}
 suppressPackageStartupMessages({
@@ -37,15 +46,6 @@ suppressPackageStartupMessages({
   library(patchwork)
 })
 ```
-
-```{r, eval=FALSE}
-dir = "/mnt/beegfs/mccarthy/backed_up/general/rlyu/Dataset/LFST_2022/GEO_2025/VUHD116A/relabel_output-XETG00048__0003817__VUHD116A__20230308__003730/outs/"
-spe <- readXeniumSXE(dir, returnType = "SPE")
-example_small <- spe[,sample(ncol(spe), 3000)]
-saveRDS(example_small, "example_spe.rds")
-```
-
-For this vignette, we will use a pre-saved `SpatialExperiment` object generated from the code above.
 
 ```{r load_spe}
 spe <- readRDS(system.file("extdata", "example_spe.rds", package = "DenoIST"))
@@ -58,7 +58,7 @@ Since the transcript file is too big to upload, for demonstration we will read i
 tx <- readRDS(system.file("extdata", "tx_sub.rds", package = "DenoIST"))
 tx
 ```
-
+These 2 files would be the input for denoising.
 
 # Denoising the data
 
@@ -70,14 +70,14 @@ You should also check whether transcript data frame has the correct columns. The
 
 Lastly, you can specify an output directory with `out_dir` to save the results automatically. If you don't want to, just leave it empty.
 
-```{r denoist, eval = FALSE}
+```{r denoist}
 # DenoIST
-result <- denoist(mat = spe, tx = tx, coords = NULL, tx_x = "x_location", tx_y = "y_location", feature_label = "feature_name", distance = 50, nbins = 200, cl = 12)
+result <- denoist(mat = spe, tx = tx, coords = NULL, tx_x = "x_location", tx_y = "y_location", feature_label = "feature_name", distance = 50, nbins = 200, cl = 1)
 ```
 
 Not that this is exactly the same as extracting the matrix and coordinates out manually: 
 
-```{r, eval = FALSE}
+```
 count_mat <- assay(spe)
 coords <- spatialCoords(spe)
 
@@ -88,7 +88,7 @@ This is useful if you want to run DenoIST on a matrix that is not a `SpatialExpe
 
 # Check results
 
-The most useful output in `result` should be the `adjusted_counts`.
+The most useful output in `result` should be the `adjusted_counts`. Here we read in a pre-made result with more cells to better demonstrate the intended effect.
 
 ```{r read_results}
 result <- readRDS(system.file("extdata", "result.rds", package = "DenoIST"))
@@ -111,7 +111,7 @@ We can also quickly visualise the difference.
 
 ```{r}
 # a custom helper function for plotting
-plot_feature_scatter <- function(coords, mat, feature, size = 0.1, output_filename = NULL) {
+plot_feature_scatter <- function(coords, mat, feature, size = 0.3, output_filename = NULL) {
   # Create a data frame from the coordinates and features
   plot_data <- data.frame(x = coords[, 1], y = coords[, 2], feature = mat[feature,])
   

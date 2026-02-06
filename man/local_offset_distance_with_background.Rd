@@ -13,7 +13,8 @@ local_offset_distance_with_background(
   feature_label = "gene",
   distance = 50,
   nbins = 200,
-  cl = 1
+  cl = 1,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ local_offset_distance_with_background(
 \item{nbins}{The number of bins to use for hexagonal binning, used for calculating background transcript contamination.}
 
 \item{cl}{The number of cores to use for parallel processing.}
+
+\item{verbose}{Logical, if TRUE, print progress messages.}
 }
 \value{
 A matrix of local background counts for each gene in each cell.
@@ -56,7 +59,9 @@ tx <- data.frame(x = c(rnorm(500), rnorm(500, 3)),
                  y = c(rnorm(500), rnorm(500, 3)),
                  qv = rep(30, 1000), gene = paste0('gene', 1:10))
 # Run DenoIST
-off_mat <- local_offset_distance_with_background(mat, tx, coords, distance = 1, nbins = 50, cl = 1)
+off_mat <- local_offset_distance_with_background(mat, tx, coords,
+                                                 distance = 1, nbins = 50,
+                                                 cl = 1, verbose = TRUE)
 # Check results
 print(off_mat[1:5, 1:5])
 }

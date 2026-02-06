@@ -6,3 +6,5 @@
 ^DenoIST\.Rproj$
 ^\.github$
 ^LICENSE\.md$
+^doc$
+^Meta$

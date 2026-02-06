@@ -25,6 +25,16 @@ This is still very much a work in progress and we are still working on the docum
 
 ## Installation:
 
+From Bioconductor:
+
+```{r install}
+if(!requireNamespace("BiocManager", quietly=TRUE))
+    install.packages("BiocManager")
+BiocManager::install("DenoIST")
+```
+
+Or from Github directly:
+
 ```         
 BiocManager::install(c('sparseMatrixStats', 'SpatialExperiment','SummarizedExperiment'))
 devtools::install_github("aaronkwc/DenoIST")
@@ -46,17 +56,7 @@ The function will return a list with
 2.  `memberships`: A data frame with the inferred identity of each gene in each cell (1 for real or 0 for contamination).
 3.  `params`: A list with the estimated parameters used in the model. The posterior probabilities of each gene being real or contamination can be found in `params$posterior_probs`, higher means more likely to be contamination.
 
-Some additional parameters you can adjust based on your dataset:
-
-1.  `distance` : The distance (in microns) to use for calculating local neighbourhood effects. Default is 50.
-2.  `nbins` : Number of bins to use for calculating ambient background. Default is 200.
-3.  `tx_x` and `tx_y`: The column names in the transcript data frame for the x and y coordinates of each transcript. Default is `x` and `y`.
-4.  `feature_label`: The column name in the transcript data frame for the gene of each transcript. Default is `gene`. (In Xenium you should change it to `feature_label`)
-5.  `posterior_cutoff`: The cutoff for the posterior probability of a gene being real or contamination. Default is 0.6, meaning if the posterior probability is above 0.6, the gene is considered real.
-6.  `cl` : Number of cores to use for parallel processing. Default is 1.
-7.  `out_dir` : An output directory to save the results in. Not mandatory. Default is NULL.
-
-You can run `?denoist` for more details on the parameters.
+You can run `?denoist` for more details on the extra parameters you can adjust.
 
 ## Examples
 
@@ -89,6 +89,9 @@ print(res$adjusted_counts)
 
 ## Vignette
 
-A brief vignette:
+Check out the vignette to get started:
 
-[Denoising healthy lung Xenium data](https://rawcdn.githack.com/aaronkwc/DenoIST/e6683f326a34bc5f779077e9a0435ec8ec2ce831/vignettes/denoist_spe.html)
+```
+library(DenoIST)
+browseVignettes("DenoIST")
+```

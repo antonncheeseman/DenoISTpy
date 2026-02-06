@@ -13,3 +13,5 @@ inst/doc
 .github
 DenoIST.Rproj
 .git
+/doc/
+/Meta/

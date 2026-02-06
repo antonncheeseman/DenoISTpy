@@ -9,6 +9,7 @@
 #' @param distance The maximum distance to consider for local background estimation.
 #' @param nbins The number of bins to use for hexagonal binning, used for calculating background transcript contamination.
 #' @param cl The number of cores to use for parallel processing.
+#' @param verbose Logical, if TRUE, print progress messages.
 #' @return A matrix of local background counts for each gene in each cell.
 #' @details
 #' The function calculates the offset used for each cell based on their local
@@ -24,17 +25,16 @@
 #'                  y = c(rnorm(500), rnorm(500, 3)),
 #'                  qv = rep(30, 1000), gene = paste0('gene', 1:10))
 #' # Run DenoIST
-#' off_mat <- local_offset_distance_with_background(mat, tx, coords, distance = 1, nbins = 50, cl = 1)
+#' off_mat <- local_offset_distance_with_background(mat, tx, coords,
+#'                                                  distance = 1, nbins = 50,
+#'                                                  cl = 1, verbose = TRUE)
 #' # Check results
 #' print(off_mat[1:5, 1:5])
 #' @importFrom pbapply pblapply
 #' @importFrom hexbin hexbin
-#' @importFrom dplyr group_by summarise
-#' @importFrom tidyr pivot_wider
-#' @importFrom tibble column_to_rownames
 #' @importFrom sparseMatrixStats rowSums2
-#' @import dplyr
-#' @import flexmix
+#' @importFrom stats xtabs
+#' @importFrom flexmix FLXMRglm flexmix parameters clusters
 #' @export
 local_offset_distance_with_background <- function(mat,
                                                   tx,
@@ -44,20 +44,21 @@ local_offset_distance_with_background <- function(mat,
                                                   feature_label = "gene",
                                                   distance = 50,
                                                   nbins = 200,
-                                                  cl = 1) {
+                                                  cl = 1,
+                                                  verbose = FALSE) {
 
-  #print(mat[1:5, 1:5])
-  #print(coords[1:5, 1:2])
-  message('Calculating global background...')
   # filter by qv20 if the column exists (ie Xenium)
   if('qv' %in% colnames(tx)){
-    message('Filtering qv for high quality transcripts...')
+    message('QV column found! Filtering qv for high quality transcripts...')
     tx <- tx[tx[['qv']] >= 20,]
   }else{
     message('QV column not found! Skipping filtering...')
   }
-  #print(nrow(tx))
-  #print(head(tx))
+
+  if(verbose){
+    message('Calculating global background...')
+  }
+
   # Create hexagonal bins
   hex_bins <- hexbin(tx[[tx_x]], tx[[tx_y]], xbins = nbins, IDs = TRUE) # Adjust xbins for resolution
 
@@ -71,30 +72,21 @@ local_offset_distance_with_background <- function(mat,
   tx$hexbin_id <- hex_bins@cID  # Use the `cID` slot to get the cell IDs for each point
   tx$feature_name <- tx[,feature_label]
 
-  # Group by hexbin and gene to count occurrences
-  gene_bin_counts <- tx %>%
-    group_by(hexbin_id, feature_name) %>%
-    summarise(count = dplyr::n(), .groups = "drop")
+  gene_bin_matrix <- xtabs(~ feature_name + hexbin_id, data = tx)
 
-  # Create a matrix of gene by bin
-  gene_bin_matrix <- gene_bin_counts %>%
-    pivot_wider(names_from = hexbin_id, values_from = count, values_fill = 0) %>%
-    column_to_rownames(var = "feature_name")
-
-  #print(rownames(mat)[1:5])
-  gene_bin_matrix <- gene_bin_matrix[rownames(mat),]
+  # only keep genes that are present in the count matrix and the same order
+  idx <- match(rownames(mat), rownames(gene_bin_matrix))
+  idx <- idx[!is.na(idx)]
+  gene_bin_matrix <- gene_bin_matrix[idx, , drop = FALSE]
   gene_bin_matrix[is.na(gene_bin_matrix)] <- 0
-  #print(gene_bin_matrix[1:5, 1:10])
-  #print(gene_bin_matrix[1:5, 1:5])
+
   bin_total <- colSums(gene_bin_matrix)
-  #print(bin_total[1:5])
-  #print(any(is.na(bin_total)))
 
   # Extract empty bins inferred from GMM
   # Fit a Gaussian Mixture Model to colSums(gene_bin_matrix)
-  message("Running GMM...")
-  #print(bin_total[1:5])
-  #gmm <- Mclust(bin_total, G = 2)
+  if(verbose){
+    message("Running GMM...")
+  }
   mo1 <- FLXMRglm(family = "gaussian")
   mo2 <- FLXMRglm(family = "gaussian")
   bg_offset <- tryCatch(
@@ -103,10 +95,8 @@ local_offset_distance_with_background <- function(mat,
           c1 <- parameters(flexfit, component=1)[[1]]
           c2 <- parameters(flexfit, component=2)[[1]]
           # Print the summary of the GMM
-          # print(summary(gmm))
 
           # Identify the component with the smaller mean
-          #gmm_means <- gmm$parameters$mean
           gmm_means <- c(c1[1], c2[1])
           smaller_mean_component <- which.min(gmm_means)
 
@@ -126,13 +116,11 @@ local_offset_distance_with_background <- function(mat,
         }
   )
 
-  #print(bg_offset[1:5])
   bg_offset <- as.numeric(bg_offset)
   # for each obs, get neighbours within distance
   # and then get the total count
   get_neighbors_within_distance <- function(coords, distance) {
     coords_mat <- as.matrix(coords)
-    #mode(coords_mat) <- "numeric"
     neighbors <- vector("list", nrow(coords))
     neighbors <- pblapply(seq_len(nrow(coords)), function(i) {
       dists <- sqrt(rowSums2((coords_mat - coords_mat[i, ])^2))
@@ -140,9 +128,12 @@ local_offset_distance_with_background <- function(mat,
     }, cl = cl)
     return(neighbors)
   }
-  message("Finding neighbours...")
+
+  if(verbose){
+    message("Finding neighbours...")
+  }
+
   neighbors <- get_neighbors_within_distance(coords[, c(1,2)], distance)
-  #print(neighbors[[1]])
 
   get_local_offset <- function(idx, neighbors, mat) {
     if (length(neighbors[[idx]]) == 0) {
@@ -157,11 +148,12 @@ local_offset_distance_with_background <- function(mat,
     return(offset)
   }
 
-  message("Calculating local offset...")
+  if(verbose){
+    message("Calculating local offset...")
+  }
   res <- pblapply(seq_len(ncol(mat)), get_local_offset, neighbors, mat, cl = cl)
   res_mat <- do.call(cbind, res)
   colnames(res_mat) <- colnames(mat)
-  #browser()
 
   # add bg_offset to every column of res_mat
   res_mat <- sweep(res_mat, 1, bg_offset, "+")

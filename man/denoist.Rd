@@ -15,7 +15,8 @@ denoist(
   nbins = 200,
   posterior_cutoff = 0.6,
   cl = 1,
-  out_dir = NULL
+  out_dir = NULL,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -23,7 +24,7 @@ denoist(
 
 \item{tx}{A data frame of transcript with x, y and qv columns.}
 
-\item{coords}{A data frame of coordinates (n_cells x 2).}
+\item{coords}{A data frame of coordinates (n_cells x 2). Only used if not using a SpatialExperiment object as input.}
 
 \item{tx_x}{Column name for the x coordinates in the transcripts dataframe. Default is 'x'.}
 
@@ -40,6 +41,8 @@ denoist(
 \item{cl}{The number of cores to use for parallel processing.}
 
 \item{out_dir}{The output directory to save the results.}
+
+\item{verbose}{Logical, if TRUE, print progress messages.}
 }
 \value{
 A list containing the following elements:
@@ -68,7 +71,8 @@ tx <- data.frame(x = c(rnorm(500), rnorm(500, 3)),
                  y = c(rnorm(500), rnorm(500, 3)),
                  qv = rep(30, 1000), gene = paste0('gene', 1:10))
 # Run DenoIST
-result <- denoist(mat, tx, coords, distance = 1, nbins = 50, cl = 1, out_dir = NULL)
+result <- denoist(mat, tx, coords, distance = 1, nbins = 50, cl = 1,
+                  out_dir = NULL, verbose = TRUE)
 # Check results
 print(result$memberships[1:5, 1:5])
 print(result$adjusted_counts[1:5, 1:5])

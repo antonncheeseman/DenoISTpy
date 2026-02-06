@@ -14,7 +14,7 @@ utils::globalVariables(c("feature_name", "hexbin_id", "count"))
 #' image-based single-cell transcriptomics (IST) data.
 #' It uses a transposed Poisson mixture model to identify contamination.
 #' @param mat A matrix of counts (genes x cells), or a SpatialExperiment object.
-#' @param coords A data frame of coordinates (n_cells x 2).
+#' @param coords A data frame of coordinates (n_cells x 2). Only used if not using a SpatialExperiment object as input.
 #' @param tx A data frame of transcript with x, y and qv columns.
 #' @param tx_x Column name for the x coordinates in the transcripts dataframe. Default is 'x'.
 #' @param tx_y Column name for the y coordinates in the transcripts dataframe. Default is 'y'.
@@ -24,6 +24,7 @@ utils::globalVariables(c("feature_name", "hexbin_id", "count"))
 #' @param posterior_cutoff The cutoff for posterior probability to determine contamination.
 #' @param cl The number of cores to use for parallel processing.
 #' @param out_dir The output directory to save the results.
+#' @param verbose Logical, if TRUE, print progress messages.
 #' @return A list containing the following elements:
 #' \item{memberships}{A matrix of memberships for each gene in each cell.}
 #' \item{adjusted_counts}{A matrix of adjusted counts for each gene in each cell.}
@@ -42,7 +43,8 @@ utils::globalVariables(c("feature_name", "hexbin_id", "count"))
 #'                  y = c(rnorm(500), rnorm(500, 3)),
 #'                  qv = rep(30, 1000), gene = paste0('gene', 1:10))
 #' # Run DenoIST
-#' result <- denoist(mat, tx, coords, distance = 1, nbins = 50, cl = 1, out_dir = NULL)
+#' result <- denoist(mat, tx, coords, distance = 1, nbins = 50, cl = 1,
+#'                   out_dir = NULL, verbose = TRUE)
 #' # Check results
 #' print(result$memberships[1:5, 1:5])
 #' print(result$adjusted_counts[1:5, 1:5])
@@ -55,7 +57,9 @@ denoist <- function(mat, tx, coords = NULL,
                     nbins = 200,
                     posterior_cutoff = 0.6,
                     cl = 1,
-                    out_dir = NULL){
+                    out_dir = NULL,
+                    verbose = FALSE){
+
   # TODO:check input type
   if(inherits(mat, "SpatialExperiment")){
     coords <- spatialCoords(mat)
@@ -66,12 +70,10 @@ denoist <- function(mat, tx, coords = NULL,
     stop("coords must be provided")
   }
 
-  #print(coords[1:5,1:2])
-  #print(colnames(coords))
-  #print(mat[1:5, 1:5])
-  #print(tx[1:5,])
   # calculate neighbour_offset
-  message("Calculating neighbour offset...")
+  if(verbose){
+    message("Calculating neighbour offset...")
+  }
   off_mat <- local_offset_distance_with_background(mat = mat,
                                                    coords = coords,
                                                    tx = tx,
@@ -80,7 +82,8 @@ denoist <- function(mat, tx, coords = NULL,
                                                    feature_label = feature_label,
                                                    distance = distance,
                                                    nbins = nbins,
-                                                   cl = cl)
+                                                   cl = cl,
+                                                   verbose = verbose)
   # Clear tx just in case to save mem
   rm(tx)
   gc()
@@ -104,24 +107,35 @@ denoist <- function(mat, tx, coords = NULL,
   }
 
   if(cl > 1){
-    message("Setting up parallel processing...")
+    if(verbose){
+      message("Setting up parallel processing...")
+    }
     clust <- makeCluster(cl-1, type = "FORK")
-    message("Exporting variables to workers...")
+
+    if(verbose){
+      message("Exporting variables to workers...")
+    }
     clusterExport(clust, c("mat", "off_mat", "solve_poisson_mixture", "posterior_cutoff"), envir = environment())
 
     # Apply the Poisson mixture model
-    message("Applying the Poisson mixture model...")
+    if(verbose){
+      message("Applying the Poisson mixture model...")
+    }
     results <- parLapply(cl = clust, seq_len(ncol(mat)), apply_poisson_mixture_single(mat, off_mat, posterior_cutoff))
     stopCluster(clust)
   }else{
     # use pblapply normally without multiple processing
-    message("Applying the Poisson mixture model without parallel processing...")
+    if(verbose){
+      message("Applying the Poisson mixture model without parallel processing...")
+    }
     results <- pblapply(seq_len(ncol(mat)), apply_poisson_mixture_single(mat, off_mat, posterior_cutoff), cl = cl)
   }
 
 
   # return neighbour_offset, adjusted_counts, posterior, params
-  message("Tidying up results...")
+  if(verbose){
+    message("Tidying up results...")
+  }
   memberships_matrix <- do.call(cbind, lapply(results, function(res) res["memberships"]))
   memberships_matrix <- do.call(cbind, memberships_matrix)
   colnames(memberships_matrix) <- colnames(mat)

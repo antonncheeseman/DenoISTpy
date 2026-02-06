@@ -9,7 +9,7 @@ test_that("DenoIST works with SpatialExperiment input", {
               coords = NULL,
               tx = test_tx,
               distance = 50, nbins = 200, cl = 1,
-              out_dir = "denoist_results")
+              out_dir = "denoist_results", verbose = TRUE)
   expect_length(res, 3)
 })
 
@@ -19,15 +19,6 @@ test_that("DenoIST works with Matrix input", {
   res <- denoist(mat = test_mat,
                coords = test_coords,
                tx = test_tx,
-               distance = 50, nbins = 200, cl = 1)
+               distance = 50, nbins = 200, cl = 1, verbose = TRUE)
   expect_length(res, 3)
 })
-
-# test_that("DenoIST can be run with multicore", {
-#   # Test the function with the provided data
-#   res <- denoist(mat = test_mat,
-#                coords = test_coords,
-#                tx = test_tx,
-#                distance = 50, nbins = 200, cl = 8)
-#   expect_length(res, 3)
-# })
