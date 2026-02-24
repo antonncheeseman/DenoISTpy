@@ -22,6 +22,7 @@ utils::globalVariables(c("feature_name", "hexbin_id", "count"))
 #' @param distance The maximum distance to consider for local background estimation.
 #' @param nbins The number of bins to use for hexagonal binning.
 #' @param posterior_cutoff The cutoff for posterior probability to determine contamination.
+#' @param n_inits The number of initialisations for the mixing proportion in the Poisson mixture model. If input is a vector, directly use the vector of values as init values.
 #' @param cl The number of cores to use for parallel processing.
 #' @param out_dir The output directory to save the results.
 #' @param verbose Logical, if TRUE, print progress messages.
@@ -56,6 +57,7 @@ denoist <- function(mat, tx, coords = NULL,
                     distance = 50,
                     nbins = 200,
                     posterior_cutoff = 0.6,
+                    n_inits = 10,
                     cl = 1,
                     out_dir = NULL,
                     verbose = FALSE){
@@ -89,12 +91,12 @@ denoist <- function(mat, tx, coords = NULL,
   gc()
 
   # Function to parallelize over
-  apply_poisson_mixture_single <- function(mat, off_mat, posterior_cutoff){
+  apply_poisson_mixture_single <- function(mat, off_mat, posterior_cutoff, n_inits) {
     function(idx) { # friendship ended with OOP, FP is now my best friend
       c_vec <- mat[,idx]
       s_vec <- off_mat[,idx]
       result <- tryCatch({
-        out <- solve_poisson_mixture(c_vec, s_vec, posterior_cutoff = posterior_cutoff)
+        out <- solve_poisson_mixture(c_vec, s_vec, posterior_cutoff = posterior_cutoff, n_inits = n_inits)
         return(out)
       }, error = function(e) {
         out <- list(memberships = rep(1, length(c_vec)),
@@ -115,20 +117,20 @@ denoist <- function(mat, tx, coords = NULL,
     if(verbose){
       message("Exporting variables to workers...")
     }
-    clusterExport(clust, c("mat", "off_mat", "solve_poisson_mixture", "posterior_cutoff"), envir = environment())
+    clusterExport(clust, c("mat", "off_mat", "solve_poisson_mixture", "posterior_cutoff", "n_inits"), envir = environment())
 
     # Apply the Poisson mixture model
     if(verbose){
       message("Applying the Poisson mixture model...")
     }
-    results <- parLapply(cl = clust, seq_len(ncol(mat)), apply_poisson_mixture_single(mat, off_mat, posterior_cutoff))
+    results <- parLapply(cl = clust, seq_len(ncol(mat)), apply_poisson_mixture_single(mat, off_mat, posterior_cutoff, n_inits))
     stopCluster(clust)
   }else{
     # use pblapply normally without multiple processing
     if(verbose){
       message("Applying the Poisson mixture model without parallel processing...")
     }
-    results <- pblapply(seq_len(ncol(mat)), apply_poisson_mixture_single(mat, off_mat, posterior_cutoff), cl = cl)
+    results <- pblapply(seq_len(ncol(mat)), apply_poisson_mixture_single(mat, off_mat, posterior_cutoff, n_inits), cl = cl)
   }
 
 

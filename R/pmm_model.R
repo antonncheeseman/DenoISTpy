@@ -3,7 +3,7 @@
 #' @param s A vector of offsets.
 #' @param max_iter Maximum number of iterations for the EM algorithm.
 #' @param tol Tolerance for convergence.
-#' @param pi_inits Initial values for the mixing proportion.
+#' @param n_inits Number of initial values for the mixing proportion inference. If input is a vector, directly use the vector has init values.
 #' @param posterior_cutoff Cutoff for posterior probabilities to assign memberships.
 #' @param verbose Logical, if TRUE, print progress messages.
 #' @return{
@@ -32,11 +32,22 @@
 solve_poisson_mixture <- function(x, s,
                                   max_iter = 5000,
                                   tol = 1e-6,
-                                  pi_inits = runif(10, min = 0, max = 0.5),
+                                  n_inits = 10,
                                   posterior_cutoff = 0.6,
                                   verbose = FALSE) {
 
   n <- length(x)
+
+  if(length(n_inits) == 1) {
+    pi_inits <- runif(n_inits, min = 0, max = 0.5)
+  }else{
+    pi_inits <- n_inits
+  }
+
+  # check that pi_inits are all >0 and <=1
+  if(any(pi_inits <= 0) || any(pi_inits > 1)) {
+    stop("All initial values for pi must be in the range (0, 1]")
+  }
 
   # Store indices of non-zero s
   non_zero_indices <- which(s > 0)

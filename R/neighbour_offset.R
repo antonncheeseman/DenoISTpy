@@ -46,6 +46,8 @@ local_offset_distance_with_background <- function(mat,
                                                   nbins = 200,
                                                   cl = 1,
                                                   verbose = FALSE) {
+  # store the gene names first in case a gene gets wiped out because of QV
+  gene_names_tx <- unique(tx[[feature_label]])
 
   # filter by qv20 if the column exists (ie Xenium)
   if('qv' %in% colnames(tx)){
@@ -74,9 +76,22 @@ local_offset_distance_with_background <- function(mat,
 
   gene_bin_matrix <- xtabs(~ feature_name + hexbin_id, data = tx)
 
+  if(nrow(gene_bin_matrix) < length(gene_names_tx)){
+    message("Warning: Some genes in the original transcript data were not included in the hexbin matrix. This may be due to low quality transcripts being filtered out. Consider adjusting the QV threshold or checking the input data.")
+    # pad the matrix with a row of 0s
+    missing_genes <- setdiff(gene_names_tx, rownames(gene_bin_matrix))
+    if(length(missing_genes) > 0){
+      padding <- matrix(0, nrow = length(missing_genes), ncol = ncol(gene_bin_matrix))
+      rownames(padding) <- missing_genes
+      colnames(padding) <- colnames(gene_bin_matrix)
+      gene_bin_matrix <- rbind(gene_bin_matrix, padding)
+    }
+  }
+
   # only keep genes that are present in the count matrix and the same order
   idx <- match(rownames(mat), rownames(gene_bin_matrix))
   idx <- idx[!is.na(idx)]
+
   gene_bin_matrix <- gene_bin_matrix[idx, , drop = FALSE]
   gene_bin_matrix[is.na(gene_bin_matrix)] <- 0
 

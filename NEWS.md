@@ -1,3 +1,11 @@
+## Version 0.99.3 (2026-02-24)
+
+* Removed `print` from README.
+
+* Fixed minor bug where background offset cannot be calculated because an entire gene gets filtered out because of low qv.
+
+* `n_inits` can now be tuned in the `denoist()` function for speed.
+
 ## Version 0.99.2 (2026-02-05)
 
 * Removed commented out chunks during development.

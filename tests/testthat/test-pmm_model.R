@@ -21,3 +21,30 @@ test_that("solve_poisson_mixture handles zero s values", {
   expect_equal(length(result$memberships), length(x))
   expect_equal(result$memberships[which(s == 0)], rep(1, sum(s == 0)))
 })
+
+test_that("solve_poisson_mixture handles single init value as input", {
+  x <- c(3, 5, 2, 8, 6)
+  s <- c(1, 0, 1, 0, 1)
+  result <- solve_poisson_mixture(x, s, n_inits = 5, verbose = FALSE)
+
+  expect_equal(length(result$memberships), length(x))
+  expect_equal(result$memberships[which(s == 0)], rep(1, sum(s == 0)))
+})
+
+test_that("solve_poisson_mixture handles vector init values as input", {
+  x <- c(3, 5, 2, 8, 6)
+  s <- c(1, 0, 1, 0, 1)
+  i <- c(0.1, 0.2, 0.3, 0.4, 0.5)
+  result <- solve_poisson_mixture(x, s, n_inits = i, verbose = FALSE)
+
+  expect_equal(length(result$memberships), length(x))
+  expect_equal(result$memberships[which(s == 0)], rep(1, sum(s == 0)))
+})
+
+test_that("solve_poisson_mixture checks valid init values", {
+  x <- c(3, 5, 2, 8, 6)
+  s <- c(1, 0, 1, 0, 1)
+
+  expect_error(solve_poisson_mixture(x, s, n_inits = c(-0.1, 0.2), verbose = FALSE))
+  expect_error(solve_poisson_mixture(x, s, n_inits = c(0.1, 1.5), verbose = FALSE))
+})

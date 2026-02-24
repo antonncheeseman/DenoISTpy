@@ -14,6 +14,7 @@ denoist(
   distance = 50,
   nbins = 200,
   posterior_cutoff = 0.6,
+  n_inits = 10,
   cl = 1,
   out_dir = NULL,
   verbose = FALSE
@@ -37,6 +38,8 @@ denoist(
 \item{nbins}{The number of bins to use for hexagonal binning.}
 
 \item{posterior_cutoff}{The cutoff for posterior probability to determine contamination.}
+
+\item{n_inits}{The number of initialisations for the mixing proportion in the Poisson mixture model. If input is a vector, directly use the vector of values as init values.}
 
 \item{cl}{The number of cores to use for parallel processing.}
 

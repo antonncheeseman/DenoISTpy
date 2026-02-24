@@ -9,7 +9,7 @@ solve_poisson_mixture(
   s,
   max_iter = 5000,
   tol = 1e-06,
-  pi_inits = runif(10, min = 0, max = 0.5),
+  n_inits = 10,
   posterior_cutoff = 0.6,
   verbose = FALSE
 )
@@ -23,7 +23,7 @@ solve_poisson_mixture(
 
 \item{tol}{Tolerance for convergence.}
 
-\item{pi_inits}{Initial values for the mixing proportion.}
+\item{n_inits}{Number of initial values for the mixing proportion inference. If input is a vector, directly use the vector has init values.}
 
 \item{posterior_cutoff}{Cutoff for posterior probabilities to assign memberships.}
 

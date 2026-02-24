@@ -1,5 +1,4 @@
-#' This code is used for generating the small test dataset for vignette and
-#' testing.
+#' This code is used for generating the small test dataset for vignette
 
 library(SpatialExperimentIO)
 

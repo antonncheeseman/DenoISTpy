@@ -15,6 +15,9 @@ The package is designed to be used with the [SpatialExperiment](https://biocondu
 This is still very much a work in progress and we are still working on the documentation. Please feel free to open an issue or email at akwok@svi.edu.au if you have any questions or suggestions.
 
 ## News:
+- **2026-02-24*: Minor update
+  - Fixed minor bug where background offset cannot be calculated because an entire gene gets filtered out because of low qv. This should not change existing usage as the issue only arises in extremely small toy datasets.
+  - `n_inits` can now be tuned in the `denoist()` function for speed.
 
 - **2025-06-25**: Major update
   - Fixed memory usage for parallel processing. Feature is available only on linux/UNIX machines due to dependency on `parallel`.
@@ -71,7 +74,6 @@ res <- denoist(mat = spe,
               coords = NULL,
               distance = 50, nbins = 200, cl = 1,
               out_dir = "denoist_results")
-print(res$adjusted_counts)
 ```
 
 With a count matrix and coordinates:
@@ -84,7 +86,6 @@ res <- denoist(mat = mat,
                coords = coords,
                distance = 50, nbins = 200, cl = 1,
                out_dir = "denoist_results")
-print(res$adjusted_counts)
 ```
 
 ## Vignette
