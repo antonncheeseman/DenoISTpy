@@ -15,7 +15,11 @@ The package is designed to be used with the [SpatialExperiment](https://biocondu
 This is still very much a work in progress and we are still working on the documentation. Please feel free to open an issue or email at akwok@svi.edu.au if you have any questions or suggestions.
 
 ## News:
-- **2026-02-24*: Minor update
+- **2026-03-17**: Major update
+  - Added `local_offset_distance_with_background_fast` function which uses `dbscan` for faster neighbour finding. Also fixed critical bug that causes wrong distance calculation.
+  - `denoist()` now defaults to fast neighbour finding via the `neighbour_mode` option.
+
+- **2026-02-24**: Minor update
   - Fixed minor bug where background offset cannot be calculated because an entire gene gets filtered out because of low qv. This should not change existing usage as the issue only arises in extremely small toy datasets.
   - `n_inits` can now be tuned in the `denoist()` function for speed.
 

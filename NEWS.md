@@ -1,3 +1,13 @@
+## Version 0.99.4 (2026-03-17)
+
+* Added `local_offset_distance_with_background_fast` function which uses `dbscan` for faster neighour finding.
+
+* `denoist()` now defaults to fast neighbour finding via the `neighbour_mode` option.
+
+* Fixed minor bug where background offset cannot be calculated because an entire gene gets filtered out because of low qv. This should not change existing usage as the issue only arises in extremely small toy datasets.
+
+* `n_inits` can now be tuned in the `denoist()` function for speed.
+
 ## Version 0.99.3 (2026-02-24)
 
 * Removed `print` from README.

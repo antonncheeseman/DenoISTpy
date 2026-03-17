@@ -1,6 +1,5 @@
 utils::globalVariables(c("feature_name", "hexbin_id", "count"))
 
-
 #' @importFrom pbapply pblapply
 #' @importFrom stats dpois runif
 #' @importFrom SpatialExperiment spatialCoords
@@ -25,6 +24,7 @@ utils::globalVariables(c("feature_name", "hexbin_id", "count"))
 #' @param n_inits The number of initialisations for the mixing proportion in the Poisson mixture model. If input is a vector, directly use the vector of values as init values.
 #' @param cl The number of cores to use for parallel processing.
 #' @param out_dir The output directory to save the results.
+#' @param neighbour_mode The method to use for finding neighbors. Options are 'fast' (default) and 'original'. 'fast' uses a faster implementation with dbscan, while 'original' uses the original implementation.
 #' @param verbose Logical, if TRUE, print progress messages.
 #' @return A list containing the following elements:
 #' \item{memberships}{A matrix of memberships for each gene in each cell.}
@@ -60,6 +60,7 @@ denoist <- function(mat, tx, coords = NULL,
                     n_inits = 10,
                     cl = 1,
                     out_dir = NULL,
+                    neighbour_mode = 'fast',
                     verbose = FALSE){
 
   # TODO:check input type
@@ -76,6 +77,19 @@ denoist <- function(mat, tx, coords = NULL,
   if(verbose){
     message("Calculating neighbour offset...")
   }
+
+  if(neighbour_mode == 'fast'){
+    off_mat <- local_offset_distance_with_background_fast(mat = mat,
+                                                        coords = coords,
+                                                        tx = tx,
+                                                        tx_x = tx_x,
+                                                        tx_y = tx_y,
+                                                        feature_label = feature_label,
+                                                        distance = distance,
+                                                        nbins = nbins,
+                                                        cl = cl,
+                                                        verbose = verbose)
+  }else if(neighbour_mode == 'original'){
   off_mat <- local_offset_distance_with_background(mat = mat,
                                                    coords = coords,
                                                    tx = tx,
@@ -86,6 +100,10 @@ denoist <- function(mat, tx, coords = NULL,
                                                    nbins = nbins,
                                                    cl = cl,
                                                    verbose = verbose)
+  }else{
+    stop("Invalid neighbour_mode. Choose 'fast' or 'original'.")
+  }
+
   # Clear tx just in case to save mem
   rm(tx)
   gc()

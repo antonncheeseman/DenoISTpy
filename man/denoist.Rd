@@ -17,6 +17,7 @@ denoist(
   n_inits = 10,
   cl = 1,
   out_dir = NULL,
+  neighbour_mode = "fast",
   verbose = FALSE
 )
 }
@@ -44,6 +45,8 @@ denoist(
 \item{cl}{The number of cores to use for parallel processing.}
 
 \item{out_dir}{The output directory to save the results.}
+
+\item{neighbour_mode}{The method to use for finding neighbors. Options are 'fast' (default) and 'original'. 'fast' uses a faster implementation with dbscan, while 'original' uses the original implementation.}
 
 \item{verbose}{Logical, if TRUE, print progress messages.}
 }
