@@ -1,6 +1,6 @@
 Package: DenoIST
 Title: DenoIST: Denoising Image-based Spatial Transcriptomics data
-Version: 0.99.4
+Version: 1.0.0
 Authors@R:c( 
     person("Aaron", "Kwok", , "akwok@svi.edu.au", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-7831-4198")),
     person("Heejung","Shim", role=c("aut")),
