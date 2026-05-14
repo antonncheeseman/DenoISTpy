@@ -28,3 +28,4 @@ writer-sdata-test-output/
 report-test-output/
 *.h5ad
 *.zarr/
+AGENT_HANDOFF.md
