@@ -8,3 +8,7 @@
 ^LICENSE\.md$
 ^doc$
 ^Meta$
+^pyproject\.toml$
+^denoistpy$
+^tests_py$
+^AGENT_HANDOFF\.md$

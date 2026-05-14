@@ -16,3 +16,15 @@ DenoIST.Rproj
 /doc/
 /Meta/
 test_script_temp.R
+
+# Python build/test artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+pytest-cache-files-*/
+writer-test-output/
+writer-sdata-test-output/
+report-test-output/
+*.h5ad
+*.zarr/
