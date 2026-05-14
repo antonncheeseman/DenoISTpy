@@ -1,19 +1,13 @@
 # DenoISTpy: sparse Python denoising for image-based spatial transcriptomics
 
-<!-- badges: start -->
-
-[![R-CMD-check](https://github.com/aaronkwc/DenoIST/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/aaronkwc/DenoIST/actions/workflows/R-CMD-check.yaml)
-
-<!-- badges: end -->
-
 ## Overview
 
-This repository now contains `denoistpy`, an experimental Python implementation
+This repository contains `denoistpy`, an experimental Python implementation
 of the DenoIST workflow for denoising image-based spatial transcriptomics data.
 The Python package is designed around sparse count matrices, optional PyTorch
 acceleration, and `SpatialData`/AnnData-style workflows such as Proseg outputs.
 
-The original DenoIST implementation was an R/Bioconductor package. The R code is
+The original DenoIST implementation is an R/Bioconductor package. The R code is
 still present in this repository, but the Python prototype lives under
 `denoistpy/` and can be installed with the `pyproject.toml` in this branch.
 
@@ -22,7 +16,12 @@ scalable data handling, Proseg/SpatialData ingestion, sparse local background
 estimation, Poisson mixture fitting, AnnData/SpatialData writers, CLI usage, and
 rough parity checks against the R implementation.
 
-## What the Original R Package Did
+If you use this package and find it helpful/find issues, please let me know.
+All credit for this denoising approach is attributed to the original implementation
+by Aaron Kwok et al. (https://github.com/aaronkwc/DenoIST.git), the preprint for
+which can be found at https://www.biorxiv.org/content/10.1101/2025.11.13.688387v1.full#T1
+
+## What the Original R Package Does
 
 The R package denoises image-based spatial transcriptomics count matrices by
 estimating, for each cell, which gene counts are likely to be real cell signal
