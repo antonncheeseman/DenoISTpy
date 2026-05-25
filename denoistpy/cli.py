@@ -51,6 +51,12 @@ def _add_common_run_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--include-self-twice", action="store_true", help="Compatibility mode for the R fast-path self-count behavior.")
     parser.add_argument("--store-memberships", action="store_true", help="Store dense genes x cells membership matrix.")
     parser.add_argument("--store-posterior", action="store_true", help="Store dense genes x cells posterior matrix.")
+    parser.add_argument(
+        "--progress",
+        choices=["none", "text", "tqdm", "auto"],
+        default="text",
+        help="Progress reporting style. CLI defaults to lightweight text.",
+    )
 
 
 def _add_proseg_args(parser: argparse.ArgumentParser) -> None:
@@ -140,6 +146,7 @@ def run_proseg(args: argparse.Namespace) -> int:
         store_posterior=args.store_posterior,
         background_only=args.background_only,
         include_self_twice=args.include_self_twice,
+        progress=args.progress,
     )
 
     common_export = {

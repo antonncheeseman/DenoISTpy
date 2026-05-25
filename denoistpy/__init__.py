@@ -11,6 +11,7 @@ from .export import (
 from .io import DenoistInput, from_anndata, from_proseg_spatialdata, from_spatialdata
 from .mixture import solve_poisson_mixture_numpy, solve_poisson_mixture_torch
 from .offsets import compute_sparse_local_offsets, local_offset_distance_with_background
+from .progress import ProgressReporter
 from .report import summarize_denoist_result, write_report_csv
 from .types import DenoistResult
 
@@ -32,4 +33,5 @@ __all__ = [
     "local_offset_distance_with_background",
     "solve_poisson_mixture_numpy",
     "solve_poisson_mixture_torch",
+    "ProgressReporter",
 ]

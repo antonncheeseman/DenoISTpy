@@ -91,7 +91,8 @@ result = denoist(
     device="auto",          # resolves to cuda, mps, or cpu
     batch_size=1024,
     store_memberships=False, # avoids a dense genes x cells debug matrix
-    store_posterior=False
+    store_posterior=False,
+    progress="auto"          # text in CLI-like sessions, tqdm in notebooks
 )
 ```
 
@@ -116,6 +117,7 @@ denoistpy run-proseg input.zarr output.zarr `
   --backend torch `
   --device auto `
   --batch-size 1024 `
+  --progress text `
   --overwrite
 ```
 

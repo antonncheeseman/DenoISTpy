@@ -85,6 +85,8 @@ def test_cli_help_and_run_proseg_parser(capsys):
             "--n-inits",
             "0.1,0.2",
             "--background-only",
+            "--progress",
+            "none",
         ]
     )
     assert args.output_format == "h5ad"
@@ -92,6 +94,7 @@ def test_cli_help_and_run_proseg_parser(capsys):
     assert args.background_filter == "exclude"
     assert np.allclose(args.n_inits, np.array([0.1, 0.2], dtype=np.float32))
     assert args.background_only is True
+    assert args.progress == "none"
 
 
 def test_numpy_mixture_skips_zero_count_cell():
@@ -157,6 +160,26 @@ def test_denoist_numpy_result_shape():
     assert result.memberships.shape == counts.shape
     assert len(result.params) == counts.shape[1]
     assert result.metadata["include_self_twice"] is False
+
+
+def test_denoist_text_progress_reports_phases_and_batches(capsys):
+    counts, coords, transcripts, genes = toy_inputs()
+    denoist(
+        counts,
+        transcripts,
+        coords,
+        gene_names=genes,
+        distance=20,
+        nbins=10,
+        n_inits=np.array([0.1, 0.2]),
+        batch_size=2,
+        progress="text",
+    )
+    captured = capsys.readouterr()
+    progress_text = captured.err + captured.out
+    assert "Computing local/background offsets" in progress_text
+    assert "Fitting Poisson mixture" in progress_text
+    assert "EM batches: batch 1/2 cells 0:2" in progress_text
 
 
 def test_denoist_keeps_zero_count_cells_but_skips_fit():

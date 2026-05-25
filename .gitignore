@@ -23,6 +23,7 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 pytest-cache-files-*/
+.ipynb_checkpoints/
 writer-test-output/
 writer-sdata-test-output/
 report-test-output/

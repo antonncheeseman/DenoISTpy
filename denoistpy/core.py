@@ -12,6 +12,7 @@ from .offsets import (
     estimate_background_offset_with_diagnostics,
     filter_control_genes,
 )
+from .progress import ProgressMode, ProgressReporter
 from .types import DenoistResult
 
 
@@ -52,6 +53,7 @@ def _batched_em(
     store_memberships: bool,
     store_posterior: bool,
     random_state: int | None,
+    progress: ProgressReporter,
 ) -> tuple[sparse.csr_matrix, np.ndarray | None, np.ndarray | None, pd.DataFrame]:
     n_genes, n_cells = counts.shape
     memberships = np.ones((n_genes, n_cells), dtype=np.int8) if store_memberships else None
@@ -64,7 +66,15 @@ def _batched_em(
     counts_csc = counts.tocsc()
     offsets_csc = offsets.local.tocsc()
 
-    for start in range(0, n_cells, batch_size):
+    starts = range(0, n_cells, batch_size)
+    n_batches = (n_cells + batch_size - 1) // batch_size
+    for start in progress.iter_batches(
+        starts,
+        total=n_batches,
+        label="EM batches",
+        batch_size=batch_size,
+        n_items=n_cells,
+    ):
         stop = min(start + batch_size, n_cells)
         x = counts_csc[:, start:stop].toarray().astype(np.float32, copy=False)
         s = offsets_csc[:, start:stop].toarray().astype(np.float32, copy=False)
@@ -212,6 +222,7 @@ def denoist(
     include_self_twice: bool = False,
     return_offsets: bool = False,
     random_state: int | None = 0,
+    progress: ProgressMode | bool | None = None,
 ) -> DenoistResult:
     """Run the Python DenoIST prototype.
 
@@ -219,36 +230,40 @@ def denoist(
     or :func:`from_spatialdata` for common spatial omics containers.
     """
 
-    counts, coords, transcripts, gene_names, cell_names = _normalize_input(
-        counts,
-        transcripts,
-        coords,
-        gene_names,
-        cell_names,
-    )
-    counts, gene_names = filter_control_genes(counts, gene_names)
+    progress_reporter = ProgressReporter(progress)
+    with progress_reporter.phase("Preparing input"):
+        counts, coords, transcripts, gene_names, cell_names = _normalize_input(
+            counts,
+            transcripts,
+            coords,
+            gene_names,
+            cell_names,
+        )
+        counts, gene_names = filter_control_genes(counts, gene_names)
     if gene_names is None:
         gene_names = np.arange(counts.shape[0])
 
     if background_only:
-        background, background_diagnostics = estimate_background_offset_with_diagnostics(
-            transcripts,
-            np.asarray(gene_names),
-            x_col=x_col,
-            y_col=y_col,
-            gene_col=gene_col,
-            qv_col=qv_col,
-            qv_threshold=qv_threshold,
-            distance=distance,
-            nbins=nbins,
-            random_state=random_state,
-        )
-        adjusted, memberships, posterior, params = _background_only_adjustment(
-            counts,
-            background,
-            store_memberships=store_memberships,
-            store_posterior=store_posterior,
-        )
+        with progress_reporter.phase("Estimating ambient background"):
+            background, background_diagnostics = estimate_background_offset_with_diagnostics(
+                transcripts,
+                np.asarray(gene_names),
+                x_col=x_col,
+                y_col=y_col,
+                gene_col=gene_col,
+                qv_col=qv_col,
+                qv_threshold=qv_threshold,
+                distance=distance,
+                nbins=nbins,
+                random_state=random_state,
+            )
+        with progress_reporter.phase("Applying background-only adjustment"):
+            adjusted, memberships, posterior, params = _background_only_adjustment(
+                counts,
+                background,
+                store_memberships=store_memberships,
+                store_posterior=store_posterior,
+            )
         if cell_names is not None:
             params.insert(1, "cell_id", cell_names[params["cell_index"].to_numpy()])
         offsets = None
@@ -272,36 +287,39 @@ def denoist(
             },
         )
 
-    offsets = compute_sparse_local_offsets(
-        counts,
-        coords,
-        transcripts,
-        gene_names=gene_names,
-        x_col=x_col,
-        y_col=y_col,
-        gene_col=gene_col,
-        qv_col=qv_col,
-        qv_threshold=qv_threshold,
-        distance=distance,
-        nbins=nbins,
-        include_self_twice=include_self_twice,
-        random_state=random_state,
-    )
+    with progress_reporter.phase("Computing local/background offsets"):
+        offsets = compute_sparse_local_offsets(
+            counts,
+            coords,
+            transcripts,
+            gene_names=gene_names,
+            x_col=x_col,
+            y_col=y_col,
+            gene_col=gene_col,
+            qv_col=qv_col,
+            qv_threshold=qv_threshold,
+            distance=distance,
+            nbins=nbins,
+            include_self_twice=include_self_twice,
+            random_state=random_state,
+        )
 
-    adjusted, memberships, posterior, params = _batched_em(
-        counts,
-        offsets,
-        backend=backend,
-        batch_size=batch_size,
-        posterior_cutoff=posterior_cutoff,
-        n_inits=n_inits,
-        max_iter=max_iter,
-        tol=tol,
-        device=device,
-        store_memberships=store_memberships,
-        store_posterior=store_posterior,
-        random_state=random_state,
-    )
+    with progress_reporter.phase("Fitting Poisson mixture", f"{counts.shape[1]} cells in batches of {batch_size}"):
+        adjusted, memberships, posterior, params = _batched_em(
+            counts,
+            offsets,
+            backend=backend,
+            batch_size=batch_size,
+            posterior_cutoff=posterior_cutoff,
+            n_inits=n_inits,
+            max_iter=max_iter,
+            tol=tol,
+            device=device,
+            store_memberships=store_memberships,
+            store_posterior=store_posterior,
+            random_state=random_state,
+            progress=progress_reporter,
+        )
     if cell_names is not None:
         params.insert(1, "cell_id", cell_names[params["cell_index"].to_numpy()])
 
