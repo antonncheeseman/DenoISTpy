@@ -1,4 +1,6 @@
 import shutil
+import sys
+import types
 from pathlib import Path
 
 import numpy as np
@@ -543,3 +545,81 @@ def test_write_result_spatialdata_zarr_uses_write_method():
         assert "denoist" in original.write_args["tables"]
     finally:
         shutil.rmtree(out, ignore_errors=True)
+
+
+def test_result_to_anndata_preserves_spatialdata_attrs():
+    pytest.importorskip("anndata")
+
+    counts, coords, transcripts, genes = toy_inputs()
+    result = denoist(
+        counts,
+        transcripts,
+        coords,
+        gene_names=genes,
+        distance=20,
+        nbins=10,
+        n_inits=np.array([0.1, 0.2]),
+    )
+    template = result_to_anndata(result, counts)
+    template.uns["spatialdata_attrs"] = {"region": "cell_boundaries", "region_key": "region"}
+
+    exported = result_to_anndata(result, counts, template_adata=template, copy_uns_from_template=False)
+
+    assert exported.uns["spatialdata_attrs"] == template.uns["spatialdata_attrs"]
+
+
+def test_write_result_spatialdata_zarr_copies_backed_store_and_writes_table(monkeypatch):
+    pytest.importorskip("anndata")
+
+    class FakeBackedSpatialData:
+        def __init__(self, path):
+            self.path = Path(path)
+            self.tables = {}
+            self.written_elements = []
+
+        def write_element(self, element_name, overwrite=False):
+            self.written_elements.append((element_name, overwrite, set(self.tables)))
+
+    opened = []
+
+    def fake_read_zarr(path):
+        sdata = FakeBackedSpatialData(path)
+        opened.append(sdata)
+        return sdata
+
+    monkeypatch.setitem(sys.modules, "spatialdata", types.SimpleNamespace(read_zarr=fake_read_zarr))
+
+    counts, coords, transcripts, genes = toy_inputs()
+    result = denoist(
+        counts,
+        transcripts,
+        coords,
+        gene_names=genes,
+        distance=20,
+        nbins=10,
+        n_inits=np.array([0.1, 0.2]),
+    )
+
+    root = make_output_dir("writer-sdata-copy-test-output")
+    try:
+        source = root / "source.zarr"
+        source.mkdir()
+        (source / "marker.txt").write_text("source store")
+        original = FakeBackedSpatialData(source)
+        output = root / "output.zarr"
+
+        out_path = write_result_spatialdata_zarr(
+            original,
+            result,
+            counts,
+            output,
+            overwrite=True,
+            table_key="denoist",
+        )
+
+        assert out_path == output
+        assert (output / "marker.txt").read_text() == "source store"
+        assert len(opened) == 1
+        assert opened[0].written_elements == [("denoist", True, {"denoist"})]
+    finally:
+        shutil.rmtree(root, ignore_errors=True)

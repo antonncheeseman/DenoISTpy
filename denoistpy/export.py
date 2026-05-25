@@ -117,6 +117,13 @@ def _copy_axis_mappings(target: Any, template_adata: Any | None) -> None:
         target.obsp[key] = value.copy() if hasattr(value, "copy") else deepcopy(value)
 
 
+def _copy_spatialdata_table_attrs(target: Any, template_adata: Any | None) -> None:
+    if template_adata is None:
+        return
+    if "spatialdata_attrs" in getattr(template_adata, "uns", {}):
+        target.uns["spatialdata_attrs"] = deepcopy(template_adata.uns["spatialdata_attrs"])
+
+
 def result_to_anndata(
     result: DenoistResult,
     raw_counts: sparse.spmatrix | np.ndarray | DenoistInput,
@@ -162,6 +169,8 @@ def result_to_anndata(
     _copy_axis_mappings(adata, template_adata)
     if copy_uns_from_template and template_adata is not None:
         adata.uns.update(deepcopy(dict(template_adata.uns)))
+    else:
+        _copy_spatialdata_table_attrs(adata, template_adata)
 
     adata.layers[raw_layer] = raw.T.tocsr()
     adata.layers[corrected_layer] = corrected.T.tocsr()
@@ -281,6 +290,61 @@ def write_result_anndata_zarr(
     return out
 
 
+def _backing_store_path(sdata: Any) -> Path | None:
+    path = getattr(sdata, "path", None)
+    if path is None:
+        return None
+    try:
+        out = Path(path)
+    except TypeError:
+        return None
+    return out if out.exists() and out.is_dir() else None
+
+
+def _write_spatialdata_table_into_store(
+    sdata: Any,
+    result: DenoistResult,
+    raw_counts: sparse.spmatrix | np.ndarray | DenoistInput,
+    path: str | Path,
+    *,
+    table_key: str,
+    overwrite: bool,
+    **anndata_kwargs: Any,
+) -> Path | None:
+    source = _backing_store_path(sdata)
+    if source is None:
+        return None
+
+    out = Path(path)
+    try:
+        if source.resolve() == out.resolve():
+            raise ValueError("SpatialData output path must differ from the input backing store path.")
+    except FileNotFoundError:
+        pass
+    out = _prepare_output_path(out, overwrite=overwrite)
+    shutil.copytree(source, out)
+
+    try:
+        import spatialdata as sd
+    except ImportError as exc:
+        raise ImportError(
+            "SpatialData Zarr output requires the optional 'spatialdata' dependency. "
+            "Install with `pip install denoistpy[spatialdata]`."
+        ) from exc
+
+    sdata_out = sd.read_zarr(out)
+    add_result_table_to_spatialdata(
+        sdata_out,
+        result,
+        raw_counts,
+        table_key=table_key,
+        copy_sdata=False,
+        **anndata_kwargs,
+    )
+    sdata_out.write_element(table_key, overwrite=True)
+    return out
+
+
 def write_result_spatialdata_zarr(
     sdata: Any,
     result: DenoistResult,
@@ -298,6 +362,19 @@ def write_result_spatialdata_zarr(
     """Add a DenoIST table to SpatialData and write it as a Zarr store."""
 
     out = Path(path)
+    if copy_sdata:
+        copied_store = _write_spatialdata_table_into_store(
+            sdata,
+            result,
+            raw_counts,
+            out,
+            table_key=table_key,
+            overwrite=overwrite,
+            **anndata_kwargs,
+        )
+        if copied_store is not None:
+            return copied_store
+
     sdata_out = add_result_table_to_spatialdata(
         sdata,
         result,
