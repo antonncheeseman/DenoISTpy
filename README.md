@@ -7,9 +7,9 @@ of the DenoIST workflow for denoising image-based spatial transcriptomics data.
 The Python package is designed around sparse count matrices, optional PyTorch
 acceleration, and `SpatialData`/AnnData-style workflows such as Proseg outputs.
 
-The original DenoIST implementation is an R/Bioconductor package. The R code is
-still present in this repository, but the Python prototype lives under
-`denoistpy/` and can be installed with the `pyproject.toml` in this branch.
+The original DenoIST implementation is an R/Bioconductor package. This
+repository now carries the Python port/prototype under `denoistpy/`, which can
+be installed with the `pyproject.toml`.
 
 This is still a work in progress. The Python implementation currently focuses on
 scalable data handling, Proseg/SpatialData ingestion, sparse local background
@@ -195,113 +195,18 @@ background-bin counts. AnnData exports also add removed-count metrics to
 
 ## R/Python Parity Checks
 
-The Python test suite includes an optional R parity workflow using conda-managed
-R. Create the R environment and generate references with:
+The Python test suite includes optional rough parity checks against frozen CSV
+references generated from the original R implementation. Run them with:
 
 ```powershell
-conda env create -f tests_py/parity/environment-r.yml
-conda run -n denoistpy_r Rscript tests_py/parity/generate_r_reference.R
 python -m pytest tests_py/test_r_parity.py
 ```
+
+The historical reference-regeneration script is still present under
+`tests_py/parity/`, but it expects the original R package sources and fixtures
+and is not currently wired into this Python-only repository layout.
 
 The parity test uses fixed initialisation values and runs Python with
 `include_self_twice=True` to approximate the current R fast-path behaviour.
 The comparison is intentionally rough rather than bitwise exact because Python
 uses native hex binning and `sklearn` GMM while R uses `hexbin` and `flexmix`.
-The conda R reference script defines a small `rowSums2` compatibility shim so
-the parity environment can be created on Windows, where the Bioconductor conda
-package used by the R package is not always available.
-
-## Original R Package Usage
-
-The inherited R package is designed to be used with the
-[SpatialExperiment](https://bioconductor.org/packages/release/bioc/html/SpatialExperiment.html)
-class. If using a different format, it can also accept a matrix input with a
-data frame of coordinates.
-
-## R Package News:
-- **2026-03-17**: Major update
-  - Added `local_offset_distance_with_background_fast` function which uses `dbscan` for faster neighbour finding. Also fixed critical bug that causes wrong distance calculation.
-  - `denoist()` now defaults to fast neighbour finding via the `neighbour_mode` option.
-
-- **2026-02-24**: Minor update
-  - Fixed minor bug where background offset cannot be calculated because an entire gene gets filtered out because of low qv. This should not change existing usage as the issue only arises in extremely small toy datasets.
-  - `n_inits` can now be tuned in the `denoist()` function for speed.
-
-- **2025-06-25**: Major update
-  - Fixed memory usage for parallel processing. Feature is available only on linux/UNIX machines due to dependency on `parallel`.
-  - Posterior cutoff is now a tunable parameter.
-  - QOL changes including checking input types and error handling.
-
-- **2025-05-20**: Initial release of DenoIST. The package is now available on and GitHub.
-
-## R Installation:
-
-From Bioconductor:
-
-```{r install}
-if(!requireNamespace("BiocManager", quietly=TRUE))
-    install.packages("BiocManager")
-BiocManager::install("DenoIST")
-```
-
-Or from Github directly:
-
-```         
-BiocManager::install(c('sparseMatrixStats', 'SpatialExperiment','SummarizedExperiment'))
-devtools::install_github("aaronkwc/DenoIST")
-```
-
-## R Quick Start:
-
-In most cases, you will only need to use the `denoist()` wrapper function.
-
-It takes 2-3 inputs:
-
-1.  `mat` : SpatialExperiment object (with the counts in assay() slot) or a count matrix with genes as rows and cells as columns.
-2.  `tx`: Transcript data frame (a data frame with each row being an individual transcript, with columns specifying each transcripts' coordinates and qv). If your transcript file is not from Xenium and has no qv score, you can set a dummy column of `qv = 20` for all transcripts. This workaround should not be needed in future updates.
-3.  `coords`: If using a count matrix, a data frame (cells x 2) for each cell's centroid 2D coordinate.
-
-The function will return a list with
-
-1.  `adjusted_counts`: The adjusted counts matrix with contamination removed.
-2.  `memberships`: A data frame with the inferred identity of each gene in each cell (1 for real or 0 for contamination).
-3.  `params`: A list with the estimated parameters used in the model. The posterior probabilities of each gene being real or contamination can be found in `params$posterior_probs`, higher means more likely to be contamination.
-
-You can run `?denoist` for more details on the extra parameters you can adjust.
-
-## R Examples
-
-With a SpatialExperiment object:
-
-```         
-library(DenoIST)
-library(SpatialExperiment)
-
-res <- denoist(mat = spe,
-              tx = tx,
-              coords = NULL,
-              distance = 50, nbins = 200, cl = 1,
-              out_dir = "denoist_results")
-```
-
-With a count matrix and coordinates:
-
-```         
-library(DenoIST)
-
-res <- denoist(mat = mat,
-               tx = tx,
-               coords = coords,
-               distance = 50, nbins = 200, cl = 1,
-               out_dir = "denoist_results")
-```
-
-## R Vignette
-
-Check out the vignette to get started:
-
-```
-library(DenoIST)
-browseVignettes("DenoIST")
-```

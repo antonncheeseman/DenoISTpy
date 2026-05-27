@@ -1,0 +1,16 @@
+DenoISTpy
+
+This project is a Python port/prototype derived from the DenoIST workflow for
+denoising image-based spatial transcriptomics data.
+
+Portions of the implementation, algorithm design, examples, and reference
+behavior are based on the original DenoIST R package:
+
+  https://github.com/aaronkwc/DenoIST
+
+Original DenoIST copyright:
+
+  Copyright (c) 2025 DenoIST authors
+
+The original DenoIST package is licensed under the MIT License. The MIT license
+notice is preserved in LICENSE.md.

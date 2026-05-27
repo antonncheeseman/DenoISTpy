@@ -27,6 +27,9 @@ denoistpy = "denoistpy.cli:main"
 [tool.setuptools.packages.find]
 include = ["denoistpy*"]
 
+[tool.setuptools]
+license-files = ["LICENSE.md", "NOTICE"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests_py"]
 norecursedirs = [".git", ".pytest_cache", "pytest-cache-files-*", "pytest-tmp"]
